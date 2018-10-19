@@ -1,6 +1,9 @@
 package com.zgl.hadoop.utils;
 
-import org.apache.log4j.Logger;
+
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -9,7 +12,7 @@ import java.util.Date;
 import java.util.Random;
 
 public class DateUtil {
-	private static Logger log = Logger.getLogger(DateUtil.class);
+	private static Logger log = LoggerFactory.getLogger(DateUtil.class);
 	
 	public static final String dtLong  = "yyyyMMddHHmmss";
 	public static final String simple  = "yyyy-MM-dd HH:mm:ss";
