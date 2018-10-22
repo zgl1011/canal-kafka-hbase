@@ -57,7 +57,7 @@ public class Listener {
     //                CanalEntry.Column column = CanalEntry.Column.parseFrom(canalEntry.getStoreValue());
     //                logger.info("CanalEntry.Column=="+column.toString());
                         CanalEntry.RowChange rowChange = CanalEntry.RowChange.parseFrom(canalEntry.getStoreValue());
-                    logger.info("storeValue====" + new String(rowChange.toString().getBytes(), "UTF-8"));
+//                    logger.info("storeValue====" + new String(rowChange.toString().getBytes(), "UTF-8"));
                     switch (rowChange.getEventType()) {
                         case CREATE:
                             this.hBaseWriterOfKafka.writeDDL(canalEntry);
@@ -81,9 +81,9 @@ public class Listener {
 
         } catch (InvalidProtocolBufferException e) {
                 e.printStackTrace();
-        } catch (UnsupportedEncodingException e) {
+        } /*catch (UnsupportedEncodingException e) {
             e.printStackTrace();
-        }
+        }*/
 
 
         //  Message message = CanalMessageDeserializer.deserializer(record.value().toString().getBytes());
