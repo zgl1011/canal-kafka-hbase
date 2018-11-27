@@ -14,15 +14,13 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.metadata.HsqlTableMetaDataProvider;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.Future;
 import org.springframework.stereotype.Component;
 
@@ -139,14 +137,29 @@ public class HBaseDao {
                 logger.warn("Table: {} is exists!", tableName);
                 return;
             }
-            HTableDescriptor tableDesc = new HTableDescriptor(TableName.valueOf(tableName));
+          /*  HTableDescriptor tableDesc = new HTableDescriptor(TableName.valueOf(tableName));
             for (String cf:cfs) {
                 HColumnDescriptor hColumnDescriptor = new HColumnDescriptor(cf);
 //                hColumnDescriptor.setCompressionType(Compression.Algorithm.SNAPPY);
                 hColumnDescriptor.setMaxVersions(1);
                 tableDesc.addFamily(hColumnDescriptor);
             }
-            admin.createTable(tableDesc, splitKeys);
+            admin.createTable(tableDesc, splitKeys);*/
+            TableDescriptor desc;
+            List<ColumnFamilyDescriptor> columnFamilyDescriptors = new ArrayList<>();
+            for (String cf : cfs) {
+                ColumnFamilyDescriptorBuilder builder = ColumnFamilyDescriptorBuilder.newBuilder(Bytes.toBytes(cf));
+                //设置压缩模式
+                //builder.setCompressionType(Compression.Algorithm.SNAPPY);
+                columnFamilyDescriptors.add(builder.build());
+            }
+            if (columnFamilyDescriptors != null && !columnFamilyDescriptors.isEmpty()) {
+                desc = TableDescriptorBuilder.newBuilder(TableName.valueOf(tableName)).setColumnFamilies(columnFamilyDescriptors).build();
+            }else{
+                desc = TableDescriptorBuilder.newBuilder(TableName.valueOf(tableName)).build();
+            }
+            admin.createTable(desc,splitKeys);
+
             logger.info("Table: {} create success!", tableName);
         } finally {
             admin.close();
@@ -183,15 +196,19 @@ public class HBaseDao {
         }
     }
 
+    public boolean tableExists(String tableName) throws Exception {
+        HBaseAdmin admin =  (HBaseAdmin) getConnection().getAdmin();
+        return admin.tableExists(TableName.valueOf(tableName));
+    }
     /**
      * 异步往指定表添加数据（场景：每秒需要存储上千行数据到hbase）
-     * @param tablename  	    表名
+     * @param tableName  	    表名
      * @param puts	 			需要添加的数据
      * @return long		    返回执行时间
      * @throws IOException
      */
     @Async("myExecutor")
-    public Future<Long> put(String tablename, List<Put> puts) throws Exception {
+    public Future<Long> put(String tableName, List<Put> puts) throws Exception {
         long currentTime = System.currentTimeMillis();
         Connection conn = getConnection();
         final BufferedMutator.ExceptionListener listener = new BufferedMutator.ExceptionListener() {
@@ -203,7 +220,7 @@ public class HBaseDao {
                 }
             }
         };
-        BufferedMutatorParams params = new BufferedMutatorParams(TableName.valueOf(tablename))
+        BufferedMutatorParams params = new BufferedMutatorParams(TableName.valueOf(tableName))
                 .listener(listener);
         params.writeBufferSize(5 * 1024 * 1024);
 
@@ -233,7 +250,7 @@ public class HBaseDao {
     /**
      *
      * 往指定表添加数据（场景：每秒需要存储上千行数据到hbase）
-     * @param tablename  	    表名
+     * @param tableName  	    表名
      * @param puts	 			需要添加的数据
      * @return long		    返回执行时间
      * @throws IOException
@@ -245,16 +262,16 @@ public class HBaseDao {
     - 隐式刷新会在用户调用put或setWriteBufferSize()方法时触发。这两个方法都会将目前占用的缓冲区大小与用户配置的大小做比较，如果超出限制则会调用flushCommits()方法。
      */
     @Async("myExecutor")
-    public Future<Long> putByHTable(String tablename, List<?> puts) throws Exception {
+    public Future<Long> putByHTable(String tableName, List<?> puts) throws Exception {
         long currentTime = System.currentTimeMillis();
         Connection conn = getConnection();
-        HTable htable = (HTable) conn.getTable(TableName.valueOf(tablename));
+        HTable htable = (HTable) conn.getTable(TableName.valueOf(tableName));
         //开启客户端的写缓冲区，缓冲区负责收集put操作，然后调用RPC(每次.put(put)为一次RPC)操作一次性将put送往服务器。
         //将数据自动提交功能关闭
-        //htable.setAutoFlushTo(false);
+       // htable.setAutoFlushTo(false);
         //Put实例保存在客户端进程中的内存
         //设置数据缓存区域
-      //  htable.setWriteBufferSize(5 * 1024 * 1024);
+        //htable.setWriteBufferSize(5 * 1024 * 1024);
         try {
             htable.put((List<Put>)puts);
             //刷新缓存区

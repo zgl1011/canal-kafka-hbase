@@ -21,6 +21,9 @@ public class DMLColumn {
         this.columnName = columnName;
         this.columnValue = columnValue;
     }
+
+    public DMLColumn(){}
+
     public boolean isKey() {
         return isKey;
     }

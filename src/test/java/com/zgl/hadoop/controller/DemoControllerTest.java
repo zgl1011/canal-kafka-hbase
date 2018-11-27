@@ -18,7 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 public class DemoControllerTest extends TestBaseController{
 
-    @Test
+/*    @Test
     public void save() throws Exception {
         mvc.perform(post("/demo/save")
 				.param("id", "2")
@@ -27,20 +27,6 @@ public class DemoControllerTest extends TestBaseController{
 		        .andExpect(status().isOk()).andDo(print());
     }
 
-    @Test
-    public void testGetBean() throws Exception {
-        mvc.perform(MockMvcRequestBuilders.get("/demo/get/" + "2").accept(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andDo(MockMvcResultHandlers.print())
-                .andReturn();
-    }
-
-    @Test
-    public void testHbase()  throws Exception{
-        mvc.perform(MockMvcRequestBuilders.get("/demo/phoenixTest").accept(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andDo(MockMvcResultHandlers.print())
-                .andReturn();
-    }
+ */
 
 }

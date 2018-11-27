@@ -1,21 +1,27 @@
 package com.zgl.hadoop.service.hbase;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.otter.canal.protocol.CanalEntry;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.zgl.hadoop.configuration.hbase.HBaseConnectionFactory;
 import com.zgl.hadoop.configuration.hbase.HBaseDao;
 import com.zgl.hadoop.constant.HBaseConstant;
+import com.zgl.hadoop.entity.elasticsearch.ElasticSearchBean;
 import com.zgl.hadoop.entity.hbase.DDLColumn;
 import com.zgl.hadoop.entity.hbase.DDLEntry;
 import com.zgl.hadoop.entity.hbase.DMLColumn;
 import com.zgl.hadoop.entity.hbase.DMLEntry;
+import com.zgl.hadoop.service.elasticsearch.ElasticSearchBaseService;
+import com.zgl.hadoop.utils.ElasticSearchBeanUtils;
 import com.zgl.hadoop.utils.ParserUtil;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -38,6 +44,11 @@ public class HBaseWriterOfKafkaService {
 
     @Autowired
     private HBaseDao hBaseDao;
+
+    @Autowired
+    private ElasticSearchBaseService elasticSearchBaseService;
+    @Autowired
+    private KafkaTemplate kafkaTemplate;
 
     public void writeDDL(CanalEntry.Entry canalEntry) throws InvalidProtocolBufferException {
         CanalEntry.RowChange rowChange = CanalEntry.RowChange.parseFrom(canalEntry.getStoreValue());
@@ -87,14 +98,18 @@ public class HBaseWriterOfKafkaService {
                 dmlEntry = ParserUtil.dmlParser(canalEntry.getHeader().getSchemaName(),canalEntry.getHeader().getTableName(),rowChange.getEventType().name(),afterColumnsList);
                 rowKey = getRowKey(getRowKeyColumn(dmlEntry.getDmlColumns()).getColumnValue());
             }
-            logger.info("********rowKey*********:{}",rowKey);
+            ElasticSearchBean elasticSearchBean = ElasticSearchBeanUtils.DMLEntryToElastiSearchBean(dmlEntry,rowKey);
+    //        logger.info("********rowKey*********:{}",rowKey);
             switch (dmlEntry.getKeyWord()){
                 case "INSERT":
                 case "UPDATE":
                     dmlPut(rowKey,dmlEntry);
+                   // this.kafkaTemplate.send(new ProducerRecord("example2Batch", JSON.toJSON(elasticSearchBean).toString()));
+                    elasticSearchBaseService.saveCanalData(elasticSearchBean);
                     break;
                 case "DELETE":
                     dmlDel(rowKey,dmlEntry);
+                    elasticSearchBaseService.deleteData(elasticSearchBean.getIndex(),elasticSearchBean.getType(),elasticSearchBean.getRowKey());
                     break;
 
             }
@@ -176,7 +191,7 @@ public class HBaseWriterOfKafkaService {
         return tableName;
     }
 
-    private DMLColumn getRowKeyColumn(List<DMLColumn> dmlCols) {
+    public DMLColumn getRowKeyColumn(List<DMLColumn> dmlCols) {
         DMLColumn dmlCol = null;
 
         for (DMLColumn col : dmlCols) {
@@ -194,6 +209,7 @@ public class HBaseWriterOfKafkaService {
         if(puts!=null && !puts.isEmpty()) {
             try {
                 hBaseDao.putByHTable(tableName,puts);
+         //       hBaseDao.put(tableName,puts);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -217,7 +233,12 @@ public class HBaseWriterOfKafkaService {
         return puts;
     }
 
-    public String getRowKey(String rowKey){
+    public List<Put> getPuts(DMLEntry dmlEntry){
+        String rowKey = getRowKey(getRowKeyColumn(dmlEntry.getDmlColumns()).getColumnValue());
+        return getPuts(rowKey,dmlEntry.getDmlColumns());
+    }
+
+    private String getRowKey(String rowKey){
         StringBuffer rowKeyBuf = new StringBuffer();
         String[] splits = HBaseConnectionFactory.splits;
         //根据rowKey的hashCode对splits的大小取余获取splits的下标，注意hashCode有可能为负值所以需要转化
@@ -226,6 +247,46 @@ public class HBaseWriterOfKafkaService {
             return rowKeyBuf.append(slat).append("_").append(rowKey).toString();    //通过加盐的值的形式对region进行切分
         }else {
             return rowKey;
+        }
+    }
+
+
+    public void writeDMLAsync(CanalEntry.Entry canalEntry) throws InvalidProtocolBufferException {
+        CanalEntry.RowChange rowChange = CanalEntry.RowChange.parseFrom(canalEntry.getStoreValue());
+        List<CanalEntry.RowData> rowDataList = rowChange.getRowDatasList();
+        for(CanalEntry.RowData rowData:rowDataList){
+            List<CanalEntry.Column> afterColumnsList = rowData.getAfterColumnsList();
+            String rowKey = null;
+            DMLEntry dmlEntry;
+            dmlEntry = ParserUtil.dmlParser(canalEntry.getHeader().getSchemaName(),canalEntry.getHeader().getTableName(),rowChange.getEventType().name(),afterColumnsList);
+            rowKey = getRowKey(getRowKeyColumn(dmlEntry.getDmlColumns()).getColumnValue());
+            ElasticSearchBean elasticSearchBean = ElasticSearchBeanUtils.DMLEntryToElastiSearchBean(dmlEntry,rowKey);
+            this.kafkaTemplate.send(new ProducerRecord("example2BatchES", JSON.toJSON(elasticSearchBean).toString()));
+           // List<Put> puts = getPuts(rowKey,dmlEntry.getDmlColumns());
+            this.kafkaTemplate.send(new ProducerRecord("example2BatchHBase", JSON.toJSON(dmlEntry).toString()));
+        }
+
+    }
+
+    public void dmlBatchPut(List<Put> puts,String tableName){
+        try {
+
+            String dbName = tableName.split(":")[0];
+            if(!hBaseDao.tableExists(tableName)){
+                if(!hBaseDao.hasNamespace(dbName)) {
+                    hBaseDao.createNamespace(dbName);
+                }
+                hBaseDao.createTable(tableName,new ArrayList<String>(){{add(HBaseConstant.DETAULT_FAMILY);}},true);
+            }
+            if(puts!=null && !puts.isEmpty()) {
+                try {
+                    hBaseDao.putByHTable(tableName,puts);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }

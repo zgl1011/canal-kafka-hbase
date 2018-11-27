@@ -11,7 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
-import java.io.UnsupportedEncodingException;
 
 /**
  * @Author: zgl
@@ -26,94 +25,149 @@ public class Listener {
 
     protected final Logger logger = LoggerFactory.getLogger(this.getClass());
 
-   // @KafkaListener(topics = {"notice"})
-    public void listen(ConsumerRecord<?, ?> record) {
-        logger.info("kafka的key: " + record.key());
-        logger.info("kafka的value: " + record.value().toString());
+    /**
+     * 资产数据
+     * @param record
+     */
+    @KafkaListener(topics = {"oms_newStake"})
+    public void listenOmsNewStake(ConsumerRecord<String, Message> record) {
+        try {
+            Message message = record.value();
+            transactionalIncrement(message);
+
+        } catch (InvalidProtocolBufferException e) {
+            e.printStackTrace();
+        }
 
     }
 
-   // @KafkaListener(topics = {"notice2"})
-    public void listen2(ConsumerRecord<?, ?> record) {
-        logger.info("kafka2的key: " + record.key());
-        logger.info("kafka2的value: " + record.value().toString());
+    /**
+     * 监控数据
+     * @param record
+     */
+    @KafkaListener(topics = {"oms_monitor"})
+    public void listenOmsMonitor(ConsumerRecord<String, Message> record) {
+        try {
+            Message message = record.value();
+            transactionalIncrement(message);
+
+        } catch (InvalidProtocolBufferException e) {
+            e.printStackTrace();
+        }
     }
 
-    @KafkaListener(topics = {"example"})
-    public void listenCanal(ConsumerRecord<String, Message> record) {
+    /**
+     * 工单数据
+     * @param record
+     */
+    @KafkaListener(topics = {"iov_model"})
+    public void listenIovModel(ConsumerRecord<String, Message> record) {
         try {
 //            logger.info("TOrderConsumer--->gemini.t_order～～～～～～listen");
 //            logger.info("---|offset = %d,topic= %s,partition=%s,key =%s,value=%s\n", record.offset(), record.topic(), record.partition(), record.key(), record.value());
-            logger.info("sss---------:" + record.value().toString());
+//            logger.info("sss---------:" + record.value().toString());
 
             Message message = record.value();
-//            List<FlatMessage> flatMessages = FlatMessage.messageConverter(message);
-//            for(FlatMessage flatMessage:flatMessages){
-//                logger.info(flatMessage.toString());
-//            }
-            if (!message.getEntries().isEmpty()) {
-                for (CanalEntry.Entry canalEntry : message.getEntries()){
-                        //               CanalEntry.Entry canalEntry = message.getEntries().get(0);
-    //                CanalEntry.Column column = CanalEntry.Column.parseFrom(canalEntry.getStoreValue());
-    //                logger.info("CanalEntry.Column=="+column.toString());
-                        CanalEntry.RowChange rowChange = CanalEntry.RowChange.parseFrom(canalEntry.getStoreValue());
-//                    logger.info("storeValue====" + new String(rowChange.toString().getBytes(), "UTF-8"));
-                    switch (rowChange.getEventType()) {
-                        case CREATE:
-                            this.hBaseWriterOfKafka.writeDDL(canalEntry);
-                            break;
-                        case ERASE:         //drop语句仅支持单个表的操作
-                            this.hBaseWriterOfKafka.writeDDLDrop(canalEntry);
-                            break;
-                        case INSERT:
-                            this.hBaseWriterOfKafka.writeDML(canalEntry);
-                            break;
-                        case UPDATE:
-                            this.hBaseWriterOfKafka.writeDML(canalEntry);
-                            break;
-                        case DELETE:
-                            this.hBaseWriterOfKafka.writeDML(canalEntry);
-                            break;
 
-                    }
-                }
-            }
+            transactionalIncrement(message);
 
         } catch (InvalidProtocolBufferException e) {
                 e.printStackTrace();
-        } /*catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }*/
+        }
 
-
-        //  Message message = CanalMessageDeserializer.deserializer(record.value().toString().getBytes());
-       /* CanalBean canalBean = JSON.parseObject(record.value().toString(), CanalBean.class);
-        switch(canalBean.getEventType()){
-            case CanalEntry.EventType.INSERT_VALUE:
-                logger.info("canalBean.getEventType():"+canalBean.getEventType());
-                logger.info("CanalEntry.EventType.INSERT_VALUE:"+CanalEntry.EventType.INSERT_VALUE);
-                //20服务器上的gemini库的t_order平行同步insert的数据到Hbase的表gemini.t_order
-                insert(canalBean);
-                break;
-            case CanalEntry.EventType.UPDATE_VALUE:
-                update(canalBean);
-                break;
-            case CanalEntry.EventType.DELETE_VALUE:
-                delete(canalBean);
-                break;
-            case CanalEntry.EventType.CREATE_VALUE:
-                //TODO
-                break;
-            case CanalEntry.EventType.ALTER_VALUE:
-                //TODO
-                break;
-            case CanalEntry.EventType.ERASE_VALUE:
-                //TODO
-                break;
-            case CanalEntry.EventType.QUERY_VALUE:
-                //TODO
-                break;
-
-        }*/
     }
+
+    /**
+     * 历史告警数据
+     * @param record
+     *
+     * 异步操作，仅支持增量数据不带有事物的
+     */
+
+    @KafkaListener(topics = {"oms_historyalarm"})
+    public void listenOmsHistoryAlarmAsync(ConsumerRecord<String, Message> record) {
+        try {
+            Message message = record.value();
+            increment(message);
+        } catch (InvalidProtocolBufferException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    /**
+     * 订单数据
+     * @param record
+     *
+     * 异步操作，仅支持增量数据不带有事物的
+     */
+
+    @KafkaListener(topics = {"oms_order"})
+    public void listenOmsOrderAsync(ConsumerRecord<String, Message> record) {
+        try {
+            Message message = record.value();
+            increment(message);
+
+        } catch (InvalidProtocolBufferException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 带有事物操作的增量
+     * @param message
+     * @throws InvalidProtocolBufferException
+     */
+    public void transactionalIncrement(Message message) throws InvalidProtocolBufferException {
+        if (!message.getEntries().isEmpty()) {
+            for (CanalEntry.Entry canalEntry : message.getEntries()) {
+
+                CanalEntry.RowChange rowChange = CanalEntry.RowChange.parseFrom(canalEntry.getStoreValue());
+//                    logger.info("storeValue====" + new String(rowChange.toString().getBytes(), "UTF-8"));
+                switch (rowChange.getEventType()) {
+                    case CREATE:
+                        this.hBaseWriterOfKafka.writeDDL(canalEntry);
+                        break;
+                    case ERASE:         //drop语句仅支持单个表的操作
+                        this.hBaseWriterOfKafka.writeDDLDrop(canalEntry);
+                        break;
+                    case INSERT:
+                        this.hBaseWriterOfKafka.writeDML(canalEntry);
+                        break;
+                    case UPDATE:
+                        this.hBaseWriterOfKafka.writeDML(canalEntry);
+                        break;
+                    case DELETE:
+                        this.hBaseWriterOfKafka.writeDML(canalEntry);
+                        break;
+                }
+            }
+        }
+    }
+
+    /**
+     * 增量，不带有事物操作
+     * @param message
+     * @throws InvalidProtocolBufferException
+     */
+    public void increment(Message message) throws InvalidProtocolBufferException {
+        if (!message.getEntries().isEmpty()) {
+            for (CanalEntry.Entry canalEntry : message.getEntries()) {
+
+                CanalEntry.RowChange rowChange = CanalEntry.RowChange.parseFrom(canalEntry.getStoreValue());
+                switch (rowChange.getEventType()) {
+                    case CREATE:
+                        this.hBaseWriterOfKafka.writeDDL(canalEntry);
+                        break;
+                    case ERASE:         //drop语句仅支持单个表的操作
+                        this.hBaseWriterOfKafka.writeDDLDrop(canalEntry);
+                        break;
+                    case INSERT:
+                        this.hBaseWriterOfKafka.writeDMLAsync(canalEntry);
+                        break;
+                }
+            }
+        }
+    }
+
 }

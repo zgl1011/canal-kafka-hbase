@@ -18,8 +18,8 @@ import java.util.Map;
  * @Descriptions:
  * @Date: Created in 2018/3/23
  */
-//@Configuration
-//@EnableKafka
+@Configuration
+@EnableKafka
 public class KafkaProducerConfig {
 
     @Value("${kafka.producer.servers}")

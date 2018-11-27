@@ -1,7 +1,8 @@
 server:
-  port: 8080
+  port: 18080
 
 logging:
+  file: canal-kafka-hbase.log
   path: /Users/zgl/Desktop
   level:
     com:
@@ -18,9 +19,12 @@ REDIS:
 hbase:
   master: master:60000
   zookeeper:
-    quorum: master,slave1,slave2
+    quorum: hadoop-master,hadoop-slave01,hadoop-slave02
     property:
       clientPort: 2181
+  split:
+    info: 1,2,3
+  #  info: 1,2,3,4,5,6,7,8,9,A,B,C,D,E,F  #表预切分
 zookeeper:
   znode:
     parent: /hbase
@@ -28,8 +32,8 @@ zookeeper:
 kafka:
   consumer:
     zookeeper:
-      connect: 127.0.0.1:2182
-    servers: 127.0.0.1:9092
+      connect: 192.168.10.83:2181,192.168.10.84:2181,192.168.10.85:2181,
+    servers: 192.168.10.83:9092,192.168.10.84:9092,192.168.10.85:9092
     enable:
       auto:
         commit: true
@@ -45,18 +49,19 @@ kafka:
       id: mhd-notice
     concurrency: 10
   producer:
-    servers: 127.0.0.1:9092
+    servers: 192.168.10.83:9092,192.168.10.84:9092,192.168.10.85:9092
     retries: 0
     batch:
       size: 4096
     linger: 1
     buffer:
       memory: 40960
-phoenix:
-  enable: true
-  url: jdbc:phoenix:192.168.20.128
-  type: com.alibaba.druid.pool.DruidDataSource
-  driver-class-name: org.apache.phoenix.jdbc.PhoenixDriver
-  username:
-  password:
-  default-auto-commit: true
+
+elasticsearch:
+  cluster:
+    nodes: 192.168.10.78:9300,192.168.10.77:9300,192.168.10.79:9300
+    name: es-cluster
+  client:
+    transport:
+      sniff: true
+

@@ -48,12 +48,25 @@ public class HBaseBeanDaoUtil {
     public void createTable(String tableName, Set<String> familyColumn) {
         TableName tn = TableName.valueOf(tableName);
         try (Admin admin = HBaseConnectionFactory.connection.getAdmin();) {
-            HTableDescriptor htd = new HTableDescriptor(tn);
+            //废弃的方法
+          /*  HTableDescriptor htd = new HTableDescriptor(tn);
             for (String fc : familyColumn) {
                 HColumnDescriptor hcd = new HColumnDescriptor(fc);
                 htd.addFamily(hcd);
             }
-            admin.createTable(htd);
+            admin.createTable(htd);*/
+            TableDescriptor desc;
+            List<ColumnFamilyDescriptor> columnFamilyDescriptors = new ArrayList<>();
+            for (String fc : familyColumn) {
+                columnFamilyDescriptors.add(ColumnFamilyDescriptorBuilder.of(Bytes.toBytes(fc)));
+            }
+            if (columnFamilyDescriptors != null && !columnFamilyDescriptors.isEmpty()) {
+                 desc = TableDescriptorBuilder.newBuilder(tn).setColumnFamilies(columnFamilyDescriptors).build();
+            }else{
+                 desc = TableDescriptorBuilder.newBuilder(tn).build();
+            }
+            admin.createTable(desc);
+
         } catch (IOException e) {
             e.printStackTrace();
             logger.error("创建"+tableName+"表失败！", e);

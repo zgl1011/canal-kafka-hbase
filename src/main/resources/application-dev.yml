@@ -1,28 +1,36 @@
 server:
-  port: 8088
+  port: 18080
 
 logging:
-  path: /Users/zgl/Desktop
+  file: canal-kafka-hbase.log
+  path: C:\Users\b\Desktop
   level:
     com:
-      favorites: DEBUG
+      zgl: INFO
     org:
       springframework:
         web: INFO
       mybaties: ERROR
 
-REDIS:
-  URL: 192.168.20.112
-  PORT: 6379
+spring:
+  redis:
+    host: localhost
+    port: 6379
+    pool:
+      max-idle: 100
+      min-idle: 1
+      max-active: 1000
+      max-wait: -1
 
 hbase:
-  master: master:60000
+  master: hadoop-master:16000
   zookeeper:
     quorum: hadoop-master,hadoop-slave01,hadoop-slave02
     property:
       clientPort: 2181
   split:
-    info: 1,2,3,4,5,6,7,8,9,A,B,C,D,E,F  #表预切分
+    info: 1,2,3
+  #  info: 1,2,3,4,5,6,7,8,9,A,B,C,D,E,F  #表预切分
 zookeeper:
   znode:
     parent: /hbase
@@ -47,7 +55,7 @@ kafka:
       id: mhd-notice
     concurrency: 10
   producer:
-    servers: 192.168.20.112:9092
+    servers: 192.168.10.83:9092,192.168.10.84:9092,192.168.10.85:9092
     retries: 0
     batch:
       size: 4096
@@ -55,12 +63,11 @@ kafka:
     buffer:
       memory: 40960
 
-phoenix:
-  enable: true
-  url: jdbc:phoenix:hadoop-master,hadoop-slave01,hadoop-slave02:2181
-  type: com.alibaba.druid.pool.DruidDataSource
-  validationQuery: select 1
-  driver-class-name: org.apache.phoenix.jdbc.PhoenixDriver
-  username:
-  password:
-  default-auto-commit: true
+elasticsearch:
+  cluster:
+    nodes: 192.168.10.78:9300,192.168.10.77:9300,192.168.10.79:9300
+    name: es-cluster
+  client:
+    transport:
+      sniff: true
+

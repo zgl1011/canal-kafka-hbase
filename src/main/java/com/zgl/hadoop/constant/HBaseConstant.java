@@ -12,4 +12,7 @@ package com.zgl.hadoop.constant;
 public class HBaseConstant {
     public static final String DETAULT_FAMILY="info";
     public static final String DEFAULT_QUALIFIER = "unknown";
+
+    //
+    public static final String ALARM_TABLE_NAME = "evom:t_alarm";
 }

@@ -26,7 +26,7 @@ public class ThreadPool {
 //    @Value("${threadPool.maxPoolSize}")
     private int maxPoolSize = 30;//线程池维护线程的最大数量
 //    @Value("${threadPool.queueCapacity}")
-    private int queueCapacity = 10;//缓存队列
+    private int queueCapacity = 60;//缓存队列
 //    @Value("${threadPool.keepAlive}")
     private int keepAlive = 60;//允许的空闲时间
 //    @Value("${threadPool.timeout}")
@@ -47,4 +47,6 @@ public class ThreadPool {
         executor.initialize();
         return executor;
     }
+
+
 }

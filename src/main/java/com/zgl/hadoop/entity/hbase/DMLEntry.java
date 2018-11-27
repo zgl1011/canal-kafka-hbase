@@ -1,5 +1,6 @@
 package com.zgl.hadoop.entity.hbase;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
@@ -11,7 +12,7 @@ import java.util.List;
  * \* Description:
  * \
  */
-public class DMLEntry {
+public class DMLEntry implements Serializable {
     private String dbName;
     private String tableName;
     private String keyWord;
@@ -22,6 +23,9 @@ public class DMLEntry {
         this.tableName = tableName;
         this.keyWord = keyWord;
     }
+
+    public DMLEntry(){}
+
 
     public String getDbName() {
         return dbName;

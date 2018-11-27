@@ -14,8 +14,8 @@ import org.springframework.web.context.WebApplicationContext;
  * @Descriptions:
  * @Date: Created in 2018/3/22
  */
-@RunWith(SpringRunner.class)
-@SpringBootTest
+//@RunWith(SpringRunner.class)
+// @SpringBootTest
 public class TestBaseController {
 
     @Autowired
@@ -23,7 +23,7 @@ public class TestBaseController {
 
     public MockMvc mvc;
 
-    @Before
+//    @Before
     public void initTests() {
         mvc = MockMvcBuilders.webAppContextSetup(context).build();
     }

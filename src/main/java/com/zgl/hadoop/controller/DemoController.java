@@ -3,7 +3,6 @@ package com.zgl.hadoop.controller;
 import com.google.common.collect.ImmutableMap;
 import com.zgl.hadoop.entity.Demo;
 import com.zgl.hadoop.service.DemoService;
-import com.zgl.hadoop.service.PhoenixDemoService;
 import com.zgl.hadoop.utils.BaseController;
 import com.zgl.hadoop.utils.ResultData;
 import com.zgl.hadoop.utils.ResultType;
@@ -24,8 +23,6 @@ public class DemoController extends BaseController {
 
     @Autowired
     private DemoService demoService;
-    @Autowired
-    private PhoenixDemoService phoenixDemoService;
 
     @ApiOperation(value="测试controller", notes="")
     @GetMapping("/test")
@@ -69,16 +66,6 @@ public class DemoController extends BaseController {
         }
     }
 
-    @ApiOperation(value="phoenix测试接口", notes="查询总量")
-    @GetMapping("/phoenixTest")
-    public ResultData phoenixTest(){
-        ResultData resultData = new ResultData();
-        try {
-            resultData = this.phoenixDemoService.query();
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-        return resultData;
-    }
+
 
 }
