@@ -53,13 +53,36 @@ public class ElasticSearchBaseService {
      * 创建索引
      */
     public void createIndex(String index,int shards,int replicas){
+        if(!indexIsExists(index)) {
+            CreateIndexResponse response = client.admin().indices().prepareCreate(index)
+                    .setSettings(Settings.builder()
+                            .put("index.number_of_shards", shards)
+                            .put("index.number_of_replicas", replicas))
+                    .get();
 
-        CreateIndexResponse response = client.admin().indices().prepareCreate(index)
-                .setSettings(Settings.builder()
-                        .put("index.number_of_shards", shards)
-                        .put("index.number_of_replicas", replicas))
-                .get();
+        }
+    }
 
+    /**
+     * 创建默认分片索引
+     */
+    public void createIndex(String index){
+        if(!indexIsExists(index)) {
+            CreateIndexResponse response = client.admin().indices().prepareCreate(index)
+                    .setSettings(Settings.builder()
+                            .put("index.number_of_shards", ElasticSearchConstant.DEFAULT_SHARDS)
+                            .put("index.number_of_replicas", ElasticSearchConstant.DEFAULT_REPLICAS))
+                    .get();
+
+        }
+    }
+
+    /**
+     * 删除索引
+     * @param index
+     */
+    public void deleteIndex(String index){
+        client.admin().indices().prepareDelete(index).get();
     }
 
     /**
@@ -104,12 +127,15 @@ public class ElasticSearchBaseService {
     //异步写入
     @Async("myExecutor")
     public void saveCanalData(ElasticSearchBean elasticSearchBean){
-        if(!indexIsExists(elasticSearchBean.getIndex()))
-            createIndex(elasticSearchBean.getIndex(),ElasticSearchConstant.DEFAULT_SHARDS,ElasticSearchConstant.DEFAULT_REPLICAS);
-
+        createIndex(elasticSearchBean.getIndex(),ElasticSearchConstant.DEFAULT_SHARDS,ElasticSearchConstant.DEFAULT_REPLICAS);
         IndexResponse indexResponse = saveData(elasticSearchBean.getIndex(),elasticSearchBean.getType(),elasticSearchBean.getRowKey(),elasticSearchBean.getBeanMap());
 
         LOG.info("数据写入结果："+indexResponse.getId());
+    }
+
+
+    public String getIndexName(String dbName,String tableName){
+        return dbName+"-"+tableName;
     }
 
 

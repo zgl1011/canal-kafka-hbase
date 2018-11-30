@@ -4,12 +4,15 @@ import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLName;
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
+
 import com.alibaba.druid.sql.ast.statement.*;
 import com.alibaba.druid.sql.dialect.mysql.ast.MySqlPrimaryKey;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.*;
 
+
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlAlterTableChangeColumn;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
 import com.alibaba.druid.sql.dialect.mysql.parser.MySqlStatementParser;
-import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlSchemaStatVisitor;
+
 import com.alibaba.otter.canal.protocol.CanalEntry;
 import com.zgl.hadoop.constant.KeyWordConstant;
 import com.zgl.hadoop.entity.hbase.DDLColumn;
@@ -81,14 +84,14 @@ public class ParserUtil {
             List<DDLColumn> ddlColumns = new ArrayList<>();
 
             // 0.1:仅考虑alter和create操作
-            if (sqlStatement instanceof MySqlAlterTableStatement) {
-                MySqlAlterTableStatement stmt = (MySqlAlterTableStatement) sqlStatement;
+            if (sqlStatement instanceof SQLAlterTableStatement) {
+                SQLAlterTableStatement stmt = (SQLAlterTableStatement) sqlStatement;
                 List<SQLAlterTableItem> items = stmt.getItems();
                 for (SQLAlterTableItem item : items) {
                     DDLColumn ddlColumn = new DDLColumn();
 
-                    if (item instanceof MySqlAlterTableAddColumn) {
-                        MySqlAlterTableAddColumn stmtOfAddCol = (MySqlAlterTableAddColumn) item;
+                    if (item instanceof SQLAlterTableAddColumn) {
+                        SQLAlterTableAddColumn stmtOfAddCol = (SQLAlterTableAddColumn) item;
                         // mysql语法:每一条add column stmt 一个col
                         for (SQLColumnDefinition column : stmtOfAddCol.getColumns()) {
                             String columnName = replaceAll(column.getName().getSimpleName());
@@ -131,8 +134,8 @@ public class ParserUtil {
                 for (SQLTableElement element : stmt.getTableElementList()) {
                     DDLColumn ddlColumn = new DDLColumn();
 
-                    if (element instanceof MySqlSQLColumnDefinition) {
-                        String colName = ((MySqlSQLColumnDefinition) element).getName().getSimpleName();
+                    if (element instanceof SQLColumnDefinition) {
+                        String colName = ((SQLColumnDefinition) element).getName().getSimpleName();
                         ddlColumn.setKeyWord(KeyWordConstant.CREATE);
                         ddlColumn.setColumnName(replaceAll(colName));
 
@@ -142,10 +145,12 @@ public class ParserUtil {
                     }
 
                     if (element instanceof MySqlPrimaryKey) {
-                        List<SQLExpr> exprList = ((MySqlPrimaryKey) element).getColumns();
-                        for (SQLExpr expr : exprList) {
-                            if (expr instanceof SQLIdentifierExpr) {
-                                String name = ((SQLIdentifierExpr) expr).getName();
+                        List<SQLSelectOrderByItem> exprList = ((MySqlPrimaryKey)element).getColumns();
+                        for (SQLSelectOrderByItem expr : exprList) {
+
+                                SQLExpr sqlExpr = (SQLIdentifierExpr)expr.getExpr();
+
+                                String name = ((SQLIdentifierExpr) sqlExpr).getName();
                                 ddlColumn.setKeyWord(KeyWordConstant.CREATE);
                                 ddlColumn.setColumnName(replaceAll(name));
                                 ddlColumn.setKey(true);
@@ -157,7 +162,6 @@ public class ParserUtil {
                                         ddlColumns.remove(ddlColumns.get(0));
                                     }
                                 }
-                            }
                         }
                     }
 
@@ -187,5 +191,63 @@ public class ParserUtil {
         Matcher matcher = pattern.matcher(s);
         String number = matcher.replaceAll("");
         return number;
+    }
+
+    public static void main(String args[]){
+        String sql = "CREATE TABLE `rtm_alarm` (\n" +
+                "  `uuid` varchar(40) NOT NULL COMMENT '主键',\n" +
+                "  `province_id` varchar(16) DEFAULT NULL COMMENT '行政单位_省份ID',\n" +
+                "  `province_name` varchar(64) DEFAULT NULL COMMENT '行政单位_省份名称',\n" +
+                "  `city_id` varchar(16) DEFAULT NULL COMMENT '行政单位_城市ID',\n" +
+                "  `city_name` varchar(64) DEFAULT NULL COMMENT '行政单位_城市名称',\n" +
+                "  `county_id` varchar(16) DEFAULT NULL COMMENT '行政单位_地区ID',\n" +
+                "  `county_name` varchar(64) DEFAULT NULL COMMENT '行政单位_地区名称',\n" +
+                "  `province_company` varchar(16) DEFAULT NULL COMMENT '运维单位_省份编码',\n" +
+                "  `city_company` varchar(16) DEFAULT NULL COMMENT '运维单位_城市编码',\n" +
+                "  `county_company` varchar(16) DEFAULT NULL COMMENT '运维单位_班组编码',\n" +
+                "  `station_no` varchar(32) DEFAULT NULL COMMENT '站编码',\n" +
+                "  `station_name` varchar(64) DEFAULT NULL COMMENT '站名称',\n" +
+                "  `is_affirm` varchar(2) DEFAULT NULL COMMENT '是否确认， 暂时没用 0 未确认 1 确认',\n" +
+                "  `stake_no` varchar(32) DEFAULT NULL COMMENT '桩编号',\n" +
+                "  `stake_name` varchar(255) DEFAULT NULL COMMENT '桩名称',\n" +
+                "  `charging_type` varchar(2) DEFAULT NULL COMMENT '直流or交流 AC 交流 DC 直流 AD 交直流一体',\n" +
+                "  `fault_type` varchar(1) DEFAULT NULL COMMENT '1:充电桩故障 2:充电桩离线 3:闪烁告警',\n" +
+                "  `fault_state` varchar(1) DEFAULT NULL COMMENT '0:已恢复 1:故障中',\n" +
+                "  `fault_start_time` datetime DEFAULT NULL COMMENT '故障开始时间',\n" +
+                "  `fault_end_time` datetime DEFAULT NULL COMMENT '故障结束时间',\n" +
+                "  `fault_receive_time` datetime DEFAULT NULL COMMENT '故障接受时间',\n" +
+                "  `fault_receive_clear_time` datetime DEFAULT NULL COMMENT '故障清除时间',\n" +
+                "  `fault_clear_mode` varchar(16) DEFAULT NULL COMMENT '故障清除方式',\n" +
+                "  `fault_marking` varchar(4) DEFAULT NULL COMMENT '故障码',\n" +
+                "  `fault_detail` varchar(255) DEFAULT NULL COMMENT '故障描述',\n" +
+                "  `work_order_id` varchar(32) DEFAULT NULL COMMENT '工单ID',\n" +
+                "  `work_order_state` varchar(1) DEFAULT NULL COMMENT '1:未派单 2:未接单 3:处理中4:办结',\n" +
+                "  `work_order_start_time` datetime DEFAULT NULL COMMENT '工单派发时间',\n" +
+                "  `work_order_end_time` datetime DEFAULT NULL COMMENT '工单办结时间',\n" +
+                "  `work_order_receive_time` datetime DEFAULT NULL COMMENT '工单系统接收时间，处理多线程问题',\n" +
+                "  `work_order_produce_time` datetime DEFAULT NULL COMMENT '工单接单时间',\n" +
+                "  `work_order_user_id` varchar(32) DEFAULT NULL COMMENT '工单处理人',\n" +
+                "  `sr_tag` varchar(2) DEFAULT NULL COMMENT '停复运标识',\n" +
+                "  `opera_time` datetime DEFAULT NULL COMMENT '操作时间',\n" +
+                "  `ac_tag` varchar(1) DEFAULT NULL COMMENT '通信状态标识 0 离线 1 在线',\n" +
+                "  `ac_status` varchar(1) DEFAULT NULL COMMENT '故障产生时通信状态 0 离线 1 在线',\n" +
+                "  `acc_duration` bigint(19) DEFAULT NULL COMMENT '故障累计时长',\n" +
+                "  `is_delete` varchar(1) DEFAULT NULL COMMENT '删除标识 0 正常 1 标识',\n" +
+                "  `fault_start_manage_status` varchar(2) DEFAULT NULL COMMENT '故障开始时管理状态',\n" +
+                "  `fault_end_manage_status` varchar(2) DEFAULT NULL COMMENT '故障结束时管理状态',\n" +
+                "  `is_span_day` varchar(1) DEFAULT NULL COMMENT '是否跨天 0 非跨天， 1跨天',\n" +
+                "  `work_status` varchar(4) DEFAULT NULL COMMENT '工作状态',\n" +
+                "  `fault_start_mq_detail` varchar(255) DEFAULT NULL COMMENT '故障产生时mq',\n" +
+                "  `fault_end_mq_detail` varchar(255) DEFAULT NULL COMMENT '故障恢复时mq',\n" +
+                "  `alarm_rule_detail` text COMMENT '告警规则',\n" +
+                "  `alarm_rule_result` text COMMENT '告警规则匹配结果',\n" +
+                "  `alarm_level` varchar(4) DEFAULT NULL COMMENT '告警等级 1 严重 2 一般 3 提示',\n" +
+                "  `tcu_version` varchar(4) DEFAULT NULL COMMENT '充电桩tcu版本',\n" +
+                "  `alarm_from` varchar(4) DEFAULT NULL COMMENT '故障来源',\n" +
+                "  `charger_no` varchar(32) DEFAULT NULL,\n" +
+                "  PRIMARY KEY (`uuid`) USING BTREE\n" +
+                ")";
+
+        List<DDLEntry> list = ddlParser("oms_monitor","rtm_alarm","create",sql);
     }
 }

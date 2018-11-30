@@ -14,6 +14,7 @@ import com.zgl.hadoop.entity.hbase.DMLEntry;
 import com.zgl.hadoop.service.elasticsearch.ElasticSearchBaseService;
 import com.zgl.hadoop.utils.ElasticSearchBeanUtils;
 import com.zgl.hadoop.utils.ParserUtil;
+import com.zgl.hadoop.utils.RedisUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -49,6 +50,8 @@ public class HBaseWriterOfKafkaService {
     private ElasticSearchBaseService elasticSearchBaseService;
     @Autowired
     private KafkaTemplate kafkaTemplate;
+    @Autowired
+    private RedisUtils redisUtils;
 
     public void writeDDL(CanalEntry.Entry canalEntry) throws InvalidProtocolBufferException {
         CanalEntry.RowChange rowChange = CanalEntry.RowChange.parseFrom(canalEntry.getStoreValue());
@@ -98,6 +101,7 @@ public class HBaseWriterOfKafkaService {
                 dmlEntry = ParserUtil.dmlParser(canalEntry.getHeader().getSchemaName(),canalEntry.getHeader().getTableName(),rowChange.getEventType().name(),afterColumnsList);
                 rowKey = getRowKey(getRowKeyColumn(dmlEntry.getDmlColumns()).getColumnValue());
             }
+            String tableName = getHBaseTableName(dmlEntry.getDbName(),dmlEntry.getTableName());
             ElasticSearchBean elasticSearchBean = ElasticSearchBeanUtils.DMLEntryToElastiSearchBean(dmlEntry,rowKey);
     //        logger.info("********rowKey*********:{}",rowKey);
             switch (dmlEntry.getKeyWord()){
@@ -105,11 +109,13 @@ public class HBaseWriterOfKafkaService {
                 case "UPDATE":
                     dmlPut(rowKey,dmlEntry);
                    // this.kafkaTemplate.send(new ProducerRecord("example2Batch", JSON.toJSON(elasticSearchBean).toString()));
-                    elasticSearchBaseService.saveCanalData(elasticSearchBean);
+                  //  if(redisUtils.hasKey(redisUtils.getESRedisKey(tableName)))
+                        elasticSearchBaseService.saveCanalData(elasticSearchBean);
                     break;
                 case "DELETE":
                     dmlDel(rowKey,dmlEntry);
-                    elasticSearchBaseService.deleteData(elasticSearchBean.getIndex(),elasticSearchBean.getType(),elasticSearchBean.getRowKey());
+                   // if(redisUtils.hasKey(redisUtils.getESRedisKey(tableName)))
+                        elasticSearchBaseService.deleteData(elasticSearchBean.getIndex(),elasticSearchBean.getType(),elasticSearchBean.getRowKey());
                     break;
 
             }
@@ -134,6 +140,7 @@ public class HBaseWriterOfKafkaService {
                 if(!hBaseDao.hasNamespace(ddlEntry.getDbName()))
                     hBaseDao.createNamespace(ddlEntry.getDbName());
                 hBaseDao.createTable(tableName,new ArrayList<String>(){{add(HBaseConstant.DETAULT_FAMILY);}},true);
+                elasticSearchBaseService.createIndex(elasticSearchBaseService.getIndexName(ddlEntry.getDbName(),ddlEntry.getTableName()));
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -143,6 +150,7 @@ public class HBaseWriterOfKafkaService {
     public void writeDDLDrop(CanalEntry.Entry canalEntry){
         try {
             hBaseDao.deleteTable(getHBaseTableName(canalEntry.getHeader().getSchemaName(),canalEntry.getHeader().getTableName()));
+            elasticSearchBaseService.deleteIndex(elasticSearchBaseService.getIndexName(canalEntry.getHeader().getSchemaName(),canalEntry.getHeader().getTableName()));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -259,11 +267,14 @@ public class HBaseWriterOfKafkaService {
             String rowKey = null;
             DMLEntry dmlEntry;
             dmlEntry = ParserUtil.dmlParser(canalEntry.getHeader().getSchemaName(),canalEntry.getHeader().getTableName(),rowChange.getEventType().name(),afterColumnsList);
+            String tableName = getHBaseTableName(dmlEntry.getDbName(),dmlEntry.getTableName());
             rowKey = getRowKey(getRowKeyColumn(dmlEntry.getDmlColumns()).getColumnValue());
             ElasticSearchBean elasticSearchBean = ElasticSearchBeanUtils.DMLEntryToElastiSearchBean(dmlEntry,rowKey);
-            this.kafkaTemplate.send(new ProducerRecord("example2BatchES", JSON.toJSON(elasticSearchBean).toString()));
+         //   if(redisUtils.hasKey(redisUtils.getESRedisKey(tableName)))
+                this.kafkaTemplate.send(new ProducerRecord("BatchESTopic", JSON.toJSON(elasticSearchBean).toString()));
            // List<Put> puts = getPuts(rowKey,dmlEntry.getDmlColumns());
-            this.kafkaTemplate.send(new ProducerRecord("example2BatchHBase", JSON.toJSON(dmlEntry).toString()));
+
+            this.kafkaTemplate.send(new ProducerRecord(dmlEntry.getTableName(), JSON.toJSON(dmlEntry).toString()));
         }
 
     }

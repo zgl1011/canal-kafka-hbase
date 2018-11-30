@@ -14,7 +14,7 @@ logging:
 
 spring:
   redis:
-    host: localhost
+    host: 192.168.20.90
     port: 6379
     pool:
       max-idle: 100

@@ -37,7 +37,8 @@ public class RedisUtils {
      */
     private static final String LOCK_PREFIX = "LOCK:";
 
-    private static final String KEY_PREFIX = "OMS_FILESERVER_INFO:";
+    private static final String KEY_PREFIX = "OMS_BIGDATA_INFO:";
+    private static final String ES_KEY_PREFIX = "OMS_BIGDATA_INFO:ES:INPUT_TABLE:";
 
     @Autowired
     private RedisTemplate<String,String> redisTemplate;
@@ -558,5 +559,9 @@ public class RedisUtils {
 
     public String getRedisKey(String key) {
         return  KEY_PREFIX + key;
+    }
+
+    public String getESRedisKey(String key) {
+        return  ES_KEY_PREFIX + key;
     }
 }

@@ -31,6 +31,7 @@ public class Listener {
      */
     @KafkaListener(topics = {"oms_newStake"})
     public void listenOmsNewStake(ConsumerRecord<String, Message> record) {
+        logger.info("in:"+record.topic());
         try {
             Message message = record.value();
             transactionalIncrement(message);
@@ -47,6 +48,7 @@ public class Listener {
      */
     @KafkaListener(topics = {"oms_monitor"})
     public void listenOmsMonitor(ConsumerRecord<String, Message> record) {
+        logger.info("in:"+record.topic());
         try {
             Message message = record.value();
             transactionalIncrement(message);
@@ -62,6 +64,7 @@ public class Listener {
      */
     @KafkaListener(topics = {"iov_model"})
     public void listenIovModel(ConsumerRecord<String, Message> record) {
+        logger.info("in:"+record.topic());
         try {
 //            logger.info("TOrderConsumer--->gemini.t_order～～～～～～listen");
 //            logger.info("---|offset = %d,topic= %s,partition=%s,key =%s,value=%s\n", record.offset(), record.topic(), record.partition(), record.key(), record.value());
@@ -84,8 +87,9 @@ public class Listener {
      * 异步操作，仅支持增量数据不带有事物的
      */
 
-    @KafkaListener(topics = {"oms_historyalarm"})
+    @KafkaListener(topics = {"oms_historyAlarm"})
     public void listenOmsHistoryAlarmAsync(ConsumerRecord<String, Message> record) {
+        logger.info("in:"+record.topic());
         try {
             Message message = record.value();
             increment(message);
@@ -104,6 +108,7 @@ public class Listener {
 
     @KafkaListener(topics = {"oms_order"})
     public void listenOmsOrderAsync(ConsumerRecord<String, Message> record) {
+        logger.info("in:"+record.topic());
         try {
             Message message = record.value();
             increment(message);

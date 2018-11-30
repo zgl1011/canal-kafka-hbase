@@ -34,7 +34,7 @@ public class ListenerBatch {
     private HBaseWriterOfKafkaService hBaseWriterOfKafkaService;
 
     //批量入ES
-    @KafkaListener(topics = {"example2BatchES"},containerFactory = "kafkaListenerContainerFactoryBatch")
+    @KafkaListener(topics = {"BatchESTopic"},containerFactory = "kafkaListenerContainerFactoryBatch")
     public void listenBatchES(List<ConsumerRecord<String, String>> records) {
         List<ElasticSearchBean> esList = new ArrayList<>();
         records.forEach(record -> {
@@ -45,7 +45,7 @@ public class ListenerBatch {
     }
 
     //批量入HBase
-    @KafkaListener(topics = {"example2BatchHBase"},containerFactory = "kafkaListenerContainerFactoryBatch")
+    @KafkaListener(topics = {"historyalarm_ar"},containerFactory = "kafkaListenerContainerFactoryBatch")
     public void listenBatchHBase(List<ConsumerRecord<String, String>> records) {
         logger.info("hbase batch :"+records.size());
         List<Put> puts = new ArrayList<>();

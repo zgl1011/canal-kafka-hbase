@@ -21,7 +21,7 @@ public class ElasticSearchBean implements Serializable {
     private Map<String,Object> beanMap;
 
     public ElasticSearchBean(String index, String type, String keyWord, String rowKey){
-        this.index = index;
+        this.index = index+"-"+type;
         this.type = type;
         this.keyWord = keyWord;
         this.rowKey = rowKey;
