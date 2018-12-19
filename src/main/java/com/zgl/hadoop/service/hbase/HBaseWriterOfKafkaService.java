@@ -141,6 +141,7 @@ public class HBaseWriterOfKafkaService {
                     hBaseDao.createNamespace(ddlEntry.getDbName());
                 hBaseDao.createTable(tableName,new ArrayList<String>(){{add(HBaseConstant.DETAULT_FAMILY);}},true);
                 elasticSearchBaseService.createIndex(elasticSearchBaseService.getIndexName(ddlEntry.getDbName(),ddlEntry.getTableName()));
+   //             elasticSearchBaseService.createMapping(elasticSearchBaseService.getIndexName(ddlEntry.getDbName(),ddlEntry.getTableName()),ddlEntry.getTableName(),ddlEntry.getDdlColumns());
             } catch (Exception e) {
                 e.printStackTrace();
             }

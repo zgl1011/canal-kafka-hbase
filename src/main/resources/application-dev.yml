@@ -53,7 +53,7 @@ kafka:
     topic: mhd-notice
     group:
       id: mhd-notice
-    concurrency: 10
+    concurrency: 3
   producer:
     servers: 192.168.10.83:9092,192.168.10.84:9092,192.168.10.85:9092
     retries: 0

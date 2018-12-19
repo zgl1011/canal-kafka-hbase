@@ -15,4 +15,5 @@ public class HBaseConstant {
 
     //
     public static final String ALARM_TABLE_NAME = "oms_historyalarm:historyalarm_ar";
+    public static final String ORDER_TABLE_NAME = "oms_order:t_order";
 }

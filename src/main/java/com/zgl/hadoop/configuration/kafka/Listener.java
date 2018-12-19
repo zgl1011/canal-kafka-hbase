@@ -32,13 +32,13 @@ public class Listener {
     @KafkaListener(topics = {"oms_newStake"})
     public void listenOmsNewStake(ConsumerRecord<String, Message> record) {
         logger.info("in:"+record.topic());
-        try {
+     /*   try {
             Message message = record.value();
             transactionalIncrement(message);
 
         } catch (InvalidProtocolBufferException e) {
             e.printStackTrace();
-        }
+        }*/
 
     }
 
@@ -49,13 +49,13 @@ public class Listener {
     @KafkaListener(topics = {"oms_monitor"})
     public void listenOmsMonitor(ConsumerRecord<String, Message> record) {
         logger.info("in:"+record.topic());
-        try {
+       /* try {
             Message message = record.value();
             transactionalIncrement(message);
 
         } catch (InvalidProtocolBufferException e) {
             e.printStackTrace();
-        }
+        }*/
     }
 
     /**
@@ -65,7 +65,7 @@ public class Listener {
     @KafkaListener(topics = {"iov_model"})
     public void listenIovModel(ConsumerRecord<String, Message> record) {
         logger.info("in:"+record.topic());
-        try {
+      /*  try {
 //            logger.info("TOrderConsumer--->gemini.t_order～～～～～～listen");
 //            logger.info("---|offset = %d,topic= %s,partition=%s,key =%s,value=%s\n", record.offset(), record.topic(), record.partition(), record.key(), record.value());
 //            logger.info("sss---------:" + record.value().toString());
@@ -76,7 +76,7 @@ public class Listener {
 
         } catch (InvalidProtocolBufferException e) {
                 e.printStackTrace();
-        }
+        }*/
 
     }
 
@@ -109,13 +109,13 @@ public class Listener {
     @KafkaListener(topics = {"oms_order"})
     public void listenOmsOrderAsync(ConsumerRecord<String, Message> record) {
         logger.info("in:"+record.topic());
-        try {
+     /*  try {
             Message message = record.value();
             increment(message);
 
         } catch (InvalidProtocolBufferException e) {
             e.printStackTrace();
-        }
+        }*/
     }
 
     /**
@@ -168,6 +168,9 @@ public class Listener {
                         this.hBaseWriterOfKafka.writeDDLDrop(canalEntry);
                         break;
                     case INSERT:
+                        this.hBaseWriterOfKafka.writeDMLAsync(canalEntry);
+                        break;
+                    case UPDATE:
                         this.hBaseWriterOfKafka.writeDMLAsync(canalEntry);
                         break;
                 }

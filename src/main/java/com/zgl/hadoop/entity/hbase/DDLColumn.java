@@ -14,6 +14,7 @@ public class DDLColumn {
     private String keyWord;
     private String columnName;
     private String newColumnName;
+    private String type;
 
     public boolean isKey() {
         return isKey;
@@ -45,5 +46,13 @@ public class DDLColumn {
 
     public void setNewColumnName(String newColumnName) {
         this.newColumnName = newColumnName;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 }

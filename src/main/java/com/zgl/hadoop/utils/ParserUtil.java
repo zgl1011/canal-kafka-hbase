@@ -138,10 +138,11 @@ public class ParserUtil {
                         String colName = ((SQLColumnDefinition) element).getName().getSimpleName();
                         ddlColumn.setKeyWord(KeyWordConstant.CREATE);
                         ddlColumn.setColumnName(replaceAll(colName));
-
+                        ddlColumn.setType(((SQLColumnDefinition) element).getDataType().getName());
                         if (tableElementSize == 1) {
                             ddlColumn.setKey(true);
                         }
+
                     }
 
                     if (element instanceof MySqlPrimaryKey) {
@@ -165,8 +166,8 @@ public class ParserUtil {
                         }
                     }
 
-
-                    ddlColumns.add(ddlColumn);
+                    if(ddlColumn!=null && ddlColumn.getColumnName()!=null)
+                        ddlColumns.add(ddlColumn);
 
                 }
             }

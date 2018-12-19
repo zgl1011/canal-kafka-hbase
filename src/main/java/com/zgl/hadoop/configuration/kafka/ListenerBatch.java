@@ -36,6 +36,7 @@ public class ListenerBatch {
     //批量入ES
     @KafkaListener(topics = {"BatchESTopic"},containerFactory = "kafkaListenerContainerFactoryBatch")
     public void listenBatchES(List<ConsumerRecord<String, String>> records) {
+        logger.info("es batch :"+records.size());
         List<ElasticSearchBean> esList = new ArrayList<>();
         records.forEach(record -> {
 //            logger.info("收到的数据"+record.value());
@@ -56,5 +57,17 @@ public class ListenerBatch {
             puts.addAll(hBaseWriterOfKafkaService.getPuts(dmlEntry));
         });
         hBaseWriterOfKafkaService.dmlBatchPut(puts,HBaseConstant.ALARM_TABLE_NAME);
+    }
+    @KafkaListener(topics = {"t_order"},containerFactory = "kafkaListenerContainerFactoryBatch")
+    public void listenBatchHBaseOrder(List<ConsumerRecord<String, String>> records) {
+        logger.info("hbase batch :"+records.size());
+        List<Put> puts = new ArrayList<>();
+        records.forEach(record -> {
+//            logger.info("收到的数据"+record.value());
+            DMLEntry dmlEntry = JSON.parseObject(record.value(),DMLEntry.class);
+
+            puts.addAll(hBaseWriterOfKafkaService.getPuts(dmlEntry));
+        });
+        hBaseWriterOfKafkaService.dmlBatchPut(puts,HBaseConstant.ORDER_TABLE_NAME);
     }
 }

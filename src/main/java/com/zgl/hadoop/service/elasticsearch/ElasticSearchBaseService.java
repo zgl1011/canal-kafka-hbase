@@ -3,20 +3,25 @@ package com.zgl.hadoop.service.elasticsearch;
 import com.zgl.hadoop.constant.ElasticSearchConstant;
 import com.zgl.hadoop.entity.elasticsearch.ElasticSearchBean;
 
+import com.zgl.hadoop.entity.hbase.DDLColumn;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsResponse;
+import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -124,19 +129,58 @@ public class ElasticSearchBaseService {
          client.prepareDelete(index, type, id).execute().actionGet();
     }
 
+
+
     //异步写入
     @Async("myExecutor")
     public void saveCanalData(ElasticSearchBean elasticSearchBean){
-        createIndex(elasticSearchBean.getIndex(),ElasticSearchConstant.DEFAULT_SHARDS,ElasticSearchConstant.DEFAULT_REPLICAS);
+        if(!indexIsExists(elasticSearchBean.getIndex())) {
+            createIndex(elasticSearchBean.getIndex(), ElasticSearchConstant.DEFAULT_SHARDS, ElasticSearchConstant.DEFAULT_REPLICAS);
+        }
         IndexResponse indexResponse = saveData(elasticSearchBean.getIndex(),elasticSearchBean.getType(),elasticSearchBean.getRowKey(),elasticSearchBean.getBeanMap());
 
         LOG.info("数据写入结果："+indexResponse.getId());
     }
 
 
-    public String getIndexName(String dbName,String tableName){
-        return dbName+"-"+tableName;
+    /**
+     * 映射mapping
+     * @param index
+     * @param type
+     * @param list
+     * @throws IOException
+     */
+    public void createMapping(String index, String type, List<DDLColumn> list) throws IOException {
+        PutMappingRequest request = new PutMappingRequest(index).type(type);
+        XContentBuilder builder = XContentFactory.jsonBuilder();
+        builder.startObject();
+        {
+            builder.startObject("properties");
+            {
+                for(DDLColumn ddlColumn:list) {
+                    if (ddlColumn.getColumnName() != null) {
+                        builder.startObject(ddlColumn.getColumnName());
+                        {
+                            if (ddlColumn.getType() != null && (ddlColumn.getType().equals("datetime") || ddlColumn.getType().equals("date"))) {
+                                builder.field("type", "date");
+                                builder.field("format", "yyyy-MM-dd HH:mm:ss");
+                            } else {
+                                builder.field("type", "keyword");
+                            }
+                        }
+                        builder.endObject();
+                    }
+                }
+            }
+            builder.endObject();
+        }
+        builder.endObject();
+        request.source(builder);
+        client.admin().indices().putMapping(request).actionGet();
     }
 
+    public String getIndexName(String dbName,String tableName){
+        return dbName+"."+tableName;
+    }
 
 }
